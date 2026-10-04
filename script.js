@@ -1,10 +1,11 @@
 /* =====================================================
-   ANGKRINGAN POS — Local Storage App (v6)
+   ANGKRINGAN POS — Local Storage App (v7)
    + Hari bisnis (lewat tengah malam tetap 1 hari)
    + Bayar kasbon dengan kembalian
    + Filter kategori di Kelola Menu
    + Export CSV di Rekap
    + Pendapatan Lainnya via modal → masuk keranjang
+   + Tombol hapus per item & hapus semua di tab Rekap
    ===================================================== */
 
 const LS = {
@@ -968,7 +969,10 @@ function renderRekap() {
               <div class="list-title">${esc(t.customer || 'Pelanggan')} ${statusTag}${methodBadge}</div>
               <div class="list-sub">${tanggal}</div>
             </div>
-            <div class="trx-total">${fmt(t.total)}</div>
+            <div class="trx-head-right">
+              <div class="trx-total">${fmt(t.total)}</div>
+              <button class="btn btn-sm btn-danger" data-del-trx="${t.id}">🗑 Hapus</button>
+            </div>
           </div>
           <div class="trx-items">${itemLines}</div>
           ${extra}
@@ -991,12 +995,93 @@ function renderRekap() {
             <div class="list-title">${esc(e.desc)} <span class="exp-cat-tag ${cat}">${catLabel}</span></div>
             <div class="list-sub">${formatDateLong(e.date)}</div>
           </div>
-          <div style="font-weight:800;color:var(--danger)">− ${fmt(e.amount)}</div>
+          <div class="rekap-exp-actions">
+            <div class="rekap-exp-amount">− ${fmt(e.amount)}</div>
+            <button class="btn btn-sm btn-danger" data-del-exp-rekap="${e.id}">🗑 Hapus</button>
+          </div>
         </div>
       `;
     }).join('');
   }
 }
+
+/* =====================================================
+   HAPUS TRANSAKSI & PENGELUARAN DARI TAB REKAP
+   ===================================================== */
+document.getElementById('rekapTrx').addEventListener('click', e => {
+  const btn = e.target.closest('[data-del-trx]');
+  if (!btn) return;
+  if (!confirm('Hapus transaksi ini? Tindakan ini tidak bisa dibatalkan.')) return;
+
+  const id = Number(btn.dataset.delTrx);
+  const before = state.trx.length;
+  state.trx = state.trx.filter(x => x.id !== id);
+  if (state.trx.length === before) return;
+
+  // Kalau yang dihapus adalah kasbon yang sedang diedit, batalkan edit
+  if (state.editingKasbonId === id) cancelKasbonEdit();
+
+  saveTrx();
+  updateBadge();
+  renderRekap();
+  toast('Transaksi dihapus', 'success');
+});
+
+document.getElementById('rekapExp').addEventListener('click', e => {
+  const btn = e.target.closest('[data-del-exp-rekap]');
+  if (!btn) return;
+  if (!confirm('Hapus pengeluaran ini?')) return;
+
+  const id = Number(btn.dataset.delExpRekap);
+  const before = state.exp.length;
+  state.exp = state.exp.filter(x => x.id !== id);
+  if (state.exp.length === before) return;
+
+  saveExp();
+  renderRekap();
+  toast('Pengeluaran dihapus', 'success');
+});
+
+/* =====================================================
+   HAPUS SEMUA (SESUAI PERIODE YANG TAMPIL)
+   ===================================================== */
+document.getElementById('btnDeleteAllTrx').addEventListener('click', () => {
+  const r = computeRekap();
+  const n = r.trxAll.length;
+  if (!n) return toast('Tidak ada transaksi di periode ini', 'error');
+
+  if (!confirm(`Hapus ${n} transaksi yang tampil di periode ini?\n\nTindakan ini tidak bisa dibatalkan.`)) return;
+  if (!confirm('⚠️ Konfirmasi terakhir: yakin hapus SEMUA transaksi yang ditampilkan?')) return;
+
+  const idsToDelete = new Set(r.trxAll.map(t => t.id));
+  state.trx = state.trx.filter(t => !idsToDelete.has(t.id));
+
+  // Kalau kasbon yang sedang diedit ikut terhapus, batalkan mode edit
+  if (state.editingKasbonId && idsToDelete.has(state.editingKasbonId)) {
+    cancelKasbonEdit();
+  }
+
+  saveTrx();
+  updateBadge();
+  renderRekap();
+  toast(`${n} transaksi dihapus`, 'success');
+});
+
+document.getElementById('btnDeleteAllExp').addEventListener('click', () => {
+  const r = computeRekap();
+  const n = r.expIn.length;
+  if (!n) return toast('Tidak ada pengeluaran di periode ini', 'error');
+
+  if (!confirm(`Hapus ${n} pengeluaran yang tampil di periode ini?\n\nTindakan ini tidak bisa dibatalkan.`)) return;
+  if (!confirm('⚠️ Konfirmasi terakhir: yakin hapus SEMUA pengeluaran yang ditampilkan?')) return;
+
+  const idsToDelete = new Set(r.expIn.map(e => e.id));
+  state.exp = state.exp.filter(e => !idsToDelete.has(e.id));
+
+  saveExp();
+  renderRekap();
+  toast(`${n} pengeluaran dihapus`, 'success');
+});
 
 /* =====================================================
    EXPORT CSV

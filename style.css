@@ -111,6 +111,16 @@ main {
   font-size: 1.05rem;
   color: var(--accent);
   font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.sub-title > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* ====== LAYOUT KASIR ====== */
@@ -716,6 +726,30 @@ main {
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px dashed var(--border);
+}
+
+/* ===== Tombol hapus di header transaksi (tab Rekap) ===== */
+.trx-head-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ===== Aksi hapus di pengeluaran rekap ===== */
+.rekap-exp-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.rekap-exp-amount {
+  font-weight: 800;
+  color: var(--danger);
+  white-space: nowrap;
 }
 
 /* ====== MENU GROUP ====== */
